@@ -2,12 +2,289 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>discord-stream-chat-77</title>
-<meta http-equiv="refresh" content="0; url=https://github.com/JaobsenYc/discord-stream-chat-77/">
-<link rel="canonical" href="https://github.com/JaobsenYc/discord-stream-chat-77/">
-<script>location.replace("https://github.com/JaobsenYc/discord-stream-chat-77/");</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LFG Bot</title>
+<meta name="description" content="LFG Bot is a self-hosted Discord bot that helps a League of Legends community find teammates, shows a server rank leaderboard, and announces professional players' ranked games.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f5bd5'/%3E%3Ccircle cx='11' cy='13' r='4' fill='white'/%3E%3Ccircle cx='21' cy='13' r='4' fill='white' opacity='.7'/%3E%3Cpath d='M4 26c1-4 4-6 7-6s6 2 7 6zM14 26c1-4 4-6 7-6s6 2 7 6z' fill='white' opacity='.85'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #fafafb;
+    --surface: #ffffff;
+    --surface-2: #f2f3f7;
+    --text: #1b1d24;
+    --muted: #5c6070;
+    --border: #e3e5ec;
+    --accent: #4f5bd5;
+    --accent-text: #ffffff;
+    --accent-soft: #eceefe;
+    --code-bg: #f2f3f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121318;
+      --surface: #1a1c23;
+      --surface-2: #22252e;
+      --text: #e8e9ee;
+      --muted: #a1a5b3;
+      --border: #2c2f3a;
+      --accent: #8b94f5;
+      --accent-text: #121318;
+      --accent-soft: #252949;
+      --code-bg: #262934;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121318;
+    --surface: #1a1c23;
+    --surface-2: #22252e;
+    --text: #e8e9ee;
+    --muted: #a1a5b3;
+    --border: #2c2f3a;
+    --accent: #8b94f5;
+    --accent-text: #121318;
+    --accent-soft: #252949;
+    --code-bg: #262934;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .88em;
+    background: var(--code-bg);
+    padding: .1em .4em;
+    border-radius: 5px;
+    overflow-wrap: anywhere;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+
+  header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 60px; flex-wrap: wrap; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.05rem; color: var(--text); text-decoration: none; }
+  .brand svg { width: 28px; height: 28px; flex: none; }
+  nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: .92rem; }
+  nav a { color: var(--muted); text-decoration: none; }
+  nav a:hover { color: var(--text); }
+
+  .hero { padding: 56px 0 40px; }
+  .hero h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.2; margin: 0 0 16px; letter-spacing: -.01em; }
+  .hero p { font-size: 1.1rem; color: var(--muted); margin: 0 0 12px; max-width: 680px; }
+  .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px; }
+  .btn { display: inline-block; padding: 10px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+
+  section { padding: 36px 0; border-top: 1px solid var(--border); }
+  section h2 { font-size: 1.45rem; margin: 0 0 8px; }
+  section > .wrap > p.lead { color: var(--muted); margin: 0 0 24px; max-width: 700px; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+  .card h3 { margin: 0 0 8px; font-size: 1.08rem; }
+  .card p { margin: 0 0 12px; color: var(--muted); font-size: .95rem; }
+  .tag { display: inline-block; font-size: .78rem; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
+  .tag.api { background: var(--accent-soft); color: var(--accent); }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: .93rem; }
+  th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+  th { background: var(--surface-2); font-weight: 600; font-size: .85rem; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+  td.api-name { font-weight: 600; white-space: nowrap; }
+  .note { color: var(--muted); font-size: .93rem; margin: 16px 0 0; }
+
+  ol.steps { counter-reset: step; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  ol.steps li { counter-increment: step; position: relative; padding: 14px 16px 14px 56px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 16px; top: 14px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-text); font-weight: 700; font-size: .85rem; display: grid; place-items: center; }
+
+  .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .two-col ul { margin: 0; padding-left: 20px; }
+  .two-col li { margin-bottom: 6px; }
+
+  footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(--muted); font-size: .85rem; }
+  footer p { margin: 0 0 10px; }
+</style>
 </head>
 <body>
-<p>Redirecting to <a href="https://github.com/JaobsenYc/discord-stream-chat-77/">github.com/JaobsenYc/discord-stream-chat-77</a>…</p>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#4f5bd5"/><circle cx="11" cy="13" r="4" fill="#fff"/><circle cx="21" cy="13" r="4" fill="#fff" opacity=".7"/><path d="M4 26c1-4 4-6 7-6s6 2 7 6zM14 26c1-4 4-6 7-6s6 2 7 6z" fill="#fff" opacity=".85"/></svg>
+      LFG Bot
+    </a>
+    <nav aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#riot-api">Riot API</a>
+      <a href="#data">Data</a>
+      <a href="#commands">Commands</a>
+      <a href="https://github.com/JaobsenYc/discord-stream-chat-77">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="wrap">
+      <h1>Find teammates without leaving Discord.</h1>
+      <p>LFG Bot is a self-hosted Discord bot for one League of Legends community server. It turns looking-for-group posts into teams and voice channels, shows members' ranks on a server leaderboard, and lets members follow professional players' ranked games.</p>
+      <p>It runs on a single server and is not a public bot. Its replies are in Simplified Chinese.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://github.com/JaobsenYc/discord-stream-chat-77">View source on GitHub</a>
+        <a class="btn" href="#riot-api">How we use the Riot API</a>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <div class="wrap">
+      <h2>Features</h2>
+      <p class="lead">The Riot API is used only by the two opt-in features on the right. Finding a group works without it.</p>
+      <div class="cards">
+        <div class="card">
+          <h3>Looking for group</h3>
+          <p>Post a message such as <code>LOL 4=1</code> or <code>4缺1</code>. The bot works out how many players the group still needs, tracks open slots as people join, and creates a temporary voice channel for the group that is removed once it's empty.</p>
+          <span class="tag">No Riot API</span>
+        </div>
+        <div class="card">
+          <h3>Rank linking &amp; leaderboard</h3>
+          <p>Members link their own Riot account and prove they own it with a profile icon check. Linked members appear on a server leaderboard sorted by Solo/Duo rank, posted every 12 hours.</p>
+          <span class="tag api">Account-v1 · Summoner-v4 · League-v4</span>
+        </div>
+        <div class="card">
+          <h3>Pro player tracker</h3>
+          <p>Members choose professional players to follow. The bot posts in the channel where tracking was turned on when a followed pro starts or finishes a ranked Solo/Duo game, with the champion, start time and game length.</p>
+          <span class="tag api">Account-v1 · Spectator-v5</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="riot-api">
+    <div class="wrap">
+      <h2>How we use the Riot API</h2>
+      <p class="lead">These are the only Riot API endpoints the bot calls.</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>API</th><th>Endpoint</th><th>Used for</th><th>How often</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="api-name">Account-v1</td>
+              <td><code>/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}</code></td>
+              <td>Look up the PUUID when a member links an account, or when a pro account is first tracked</td>
+              <td>Once per account</td>
+            </tr>
+            <tr>
+              <td class="api-name">Account-v1</td>
+              <td><code>/riot/account/v1/accounts/by-puuid/{puuid}</code></td>
+              <td>Keep linked Riot IDs current after a name change</td>
+              <td>Every 30 minutes per verified account</td>
+            </tr>
+            <tr>
+              <td class="api-name">Summoner-v4</td>
+              <td><code>/lol/summoner/v4/summoners/by-puuid/{puuid}</code></td>
+              <td>Read the profile icon to confirm the member owns the account</td>
+              <td>When a member links and verifies an account</td>
+            </tr>
+            <tr>
+              <td class="api-name">League-v4</td>
+              <td><code>/lol/league/v4/entries/by-puuid/{puuid}</code></td>
+              <td>Read Solo/Duo tier, division, LP, wins and losses for the leaderboard</td>
+              <td>Every 30 minutes per verified account</td>
+            </tr>
+            <tr>
+              <td class="api-name">Spectator-v5</td>
+              <td><code>/lol/spectator/v5/active-games/by-summoner/{puuid}</code></td>
+              <td>Check whether a followed pro is in a ranked Solo/Duo game</td>
+              <td>About every 20 seconds per followed pro account</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">All requests go through one client with a client-side rate limiter. Champion names come from Data Dragon's static data.</p>
+    </div>
+  </section>
+
+  <section id="linking">
+    <div class="wrap">
+      <h2>Linking your account</h2>
+      <p class="lead">Linking is optional. Only the account owner can link it.</p>
+      <ol class="steps">
+        <li>Run <code>/rank bind riot_id:Name#TAG</code> in the server.</li>
+        <li>The bot shows one of the default profile icons. Set it as your profile icon in the League client.</li>
+        <li>Run <code>/rank verify riot_id:Name#TAG</code> within 10 minutes. The bot checks your icon and links the account. Requests that are not verified in time are deleted.</li>
+        <li>Change your icon back whenever you like. Run <code>/rank unbind</code> at any time to remove the link and its rank data.</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="data">
+    <div class="wrap">
+      <h2>Data we store</h2>
+      <p class="lead">Everything is kept in the bot's own database on the server that hosts it.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>Linked accounts</h3>
+          <ul>
+            <li>Discord user ID</li>
+            <li>Riot ID and PUUID</li>
+            <li>Solo/Duo tier, division, LP, wins and losses</li>
+          </ul>
+          <p class="note">Deleted when you run <code>/rank unbind</code>.</p>
+        </div>
+        <div class="card">
+          <h3>Pro tracker</h3>
+          <ul>
+            <li>Player name, team, Riot ID and PUUID of each listed pro account</li>
+            <li>The channel to post in, and who turned tracking on</li>
+            <li>The tracked player's current game ID, champion and start time, so the bot can announce when it ends</li>
+          </ul>
+          <p class="note">We don't store match history or anything about the other players in a game.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="commands">
+    <div class="wrap">
+      <h2>Commands</h2>
+      <p class="lead">Slash commands for the Riot API features.</p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>/rank bind riot_id</code></td><td>Start linking a Riot account</td></tr>
+            <tr><td><code>/rank verify riot_id</code></td><td>Finish linking after the icon check</td></tr>
+            <tr><td><code>/rank unbind riot_id</code></td><td>Remove a linked account and its rank data</td></tr>
+            <tr><td><code>/rank me</code></td><td>Show your linked accounts and rank</td></tr>
+            <tr><td><code>/rank list [limit]</code></td><td>Show the server leaderboard</td></tr>
+            <tr><td><code>/trackpro add target</code></td><td>Follow a pro by player name (all their accounts) or Riot ID</td></tr>
+            <tr><td><code>/trackpro remove target</code></td><td>Stop following a pro</td></tr>
+            <tr><td><code>/trackpro list</code></td><td>Show followed pros and whether they're in a game</td></tr>
+            <tr><td><code>/trackpro pros</code></td><td>Show the pro player list</td></tr>
+            <tr><td><code>/trackpro register riot_id name [team]</code></td><td>Add or update a pro account (admins only)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Source code: <a href="https://github.com/JaobsenYc/discord-stream-chat-77">github.com/JaobsenYc/discord-stream-chat-77</a></p>
+    <p>LFG Bot isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.</p>
+  </div>
+</footer>
+
 </body>
 </html>
