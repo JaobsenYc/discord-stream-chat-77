@@ -1,0 +1,146 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Discord LFG Bot - Cursor Rules
+
+## 项目概述
+这是一个用Golang编写的Discord寻组(LFG)机器人项目。主要功能是解析玩家发送的寻组消息，自动管理临时语音频道和团队状态。
+
+## 编程语言与技术栈
+- 主要语言: Go (Golang) 1.24.4
+- Discord库: bwmarrin/discordgo v0.29.0
+- 配置管理: 环境变量或.env文件
+- 日志库: 标准库或logrus
+- 测试框架: Go标准testing包
+
+## 项目结构
+遵循标准Go项目结构：
+```
+discord-lfg-bot-go/
+├── cmd/bot/main.go          # 入口点
+├── doc/                    # 文档
+├── internal/                # 内部包
+│   ├── bot/                # 机器人核心逻辑
+│   ├── parser/             # 消息解析
+│   ├── channel/            # 频道管理
+│   └── team/               # 团队状态管理
+├── pkg/                    # 可复用包
+├── config/                 # 配置文件
+└── docker/                 # Docker相关文件
+```
+
+## 编码规范
+1. 使用gofmt和golint格式化代码
+2. 函数名使用驼峰命名法(CamelCase)
+3. 包名使用小写字母
+4. 常量使用全大写加下划线
+5. 私有成员使用小写开头，公开成员使用大写开头
+6. 添加必要的注释，特别是公开函数和复杂逻辑
+7. 错误处理必须明确，不能忽略error
+
+## 消息解析规范
+- 格式: `游戏名 团队总人数=当前人数`
+- 示例: "LOL 5=1", "Valorant 5=3", "CS2 5=2"
+- 支持中英文游戏名，大小写不敏感
+- 需要完整的错误处理和输入验证
+
+## 数据结构设计
+优先使用以下核心结构：
+```go
+type Team struct {
+    ID          string
+    Game        string
+    MaxPlayers  int
+    Players     []Player
+    ChannelID   string
+    CreatedAt   time.Time
+    LastActivity time.Time
+}
+
+type Player struct {
+    UserID   string
+    Username string
+    JoinedAt time.Time
+}
+```
+
+## 并发编程原则
+1. 使用goroutines处理Discord事件
+2. 使用channels进行goroutine间通信
+3. 实现优雅的shutdown机制
+4. 避免资源泄漏，确保goroutines正常结束
+5. 使用sync包进行并发安全操作
+6. 对共享状态进行适当的锁保护
+
+## 错误处理模式
+1. 所有函数应该返回error类型
+2. 使用fmt.Errorf包装错误信息
+3. 关键操作需要重试机制
+4. 记录详细的错误日志
+5. 区分可恢复和不可恢复错误
+
+## 测试要求
+1. 所有核心功能必须有单元测试
+2. 测试函数以Test开头
+3. 使用table-driven tests处理多个测试用例
+4. Mock外部依赖(Discord API)
+
+## 性能和内存管理
+1. 避免内存泄漏，及时释放资源
+2. 使用对象池减少GC压力
+3. 合理设置goroutine数量
+4. 监控内存使用情况
+5. 避免频繁的字符串拼接，使用strings.Builder
+
+## 安全规范
+1. 所有用户输入必须验证和清理
+2. 敏感信息(token)通过环境变量配置
+3. 避免在日志中记录敏感信息
+4. 使用context.Context控制请求超时
+
+## Discord集成规范
+1. 使用bwmarrin/discordgo库
+2. 实现消息、语音频道状态监听
+3. 频道名格式: `[游戏名] 寻组 (当前人数/总人数)`
+4. 实现频道超时清理机制(默认30分钟)
+5. 团队满员时自动通知
+
+## 日志记录
+1. 使用结构化日志
+2. 区分不同的日志级别(DEBUG, INFO, WARN, ERROR)
+3. 记录关键操作和错误信息
+4. 避免在生产环境记录敏感信息
+
+## 配置管理
+1. 使用.env文件或环境变量
+2. 提供默认配置值
+3. 配置项命名使用大写和下划线
+4. 验证必需的配置项
+
+## Git提交规范
+- 提交信息使用中文
+- 格式: `类型: 简短描述`
+- 例子: `feat: 添加消息解析功能`, `fix: 修复频道创建bug`
+
+## 代码生成偏好
+1. 优先生成可读性强的代码
+2. 添加适当的注释和文档
+3. 遵循Go的惯用法(idiomatic Go)
+4. 考虑边界情况和错误处理
+5. 生成的代码应该可以直接运行
+
+## 避免的模式
+1. 不要忽略错误返回值
+2. 不要使用全局变量存储状态
+3. 避免深层嵌套的if语句
+4. 不要在goroutine中直接panic
+5. 避免使用init()函数，除非必要
+
+## 优先考虑
+1. 代码可读性和可维护性
+2. 错误处理的完整性
+3. 并发安全
+4. 性能优化
+5. 测试覆盖 

@@ -1,0 +1,129 @@
+services:
+  # 主应用 - Discord LFG Bot
+  lfg-bot:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: discord-lfg-bot
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - GUILD_ID=${GUILD_ID}
+      - CHANNEL_MAPPINGS=${CHANNEL_MAPPINGS}
+      - DEFAULT_CATEGORY_ID=${DEFAULT_CATEGORY_ID}
+      - DEFAULT_TEXT_CHANNEL_ID=${DEFAULT_TEXT_CHANNEL_ID}
+      - DEVELOPMENT_MODE=${DEVELOPMENT_MODE:-false}
+      - CLEANUP_TEXT_CHANNELS_ON_START=${CLEANUP_TEXT_CHANNELS_ON_START:-false}
+      - CLEANUP_VOICE_CHANNELS_ON_START=${CLEANUP_VOICE_CHANNELS_ON_START:-false}
+      - TEMP_ROOM_ENABLED=${TEMP_ROOM_ENABLED:-false}
+      - TEMP_ROOM_TRIGGER_CHANNEL=${TEMP_ROOM_TRIGGER_CHANNEL}
+      - TEMP_ROOM_CATEGORY_ID=${TEMP_ROOM_CATEGORY_ID}
+      - TEMP_ROOM_NAME_TEMPLATE=${TEMP_ROOM_NAME_TEMPLATE:-临时房间DASH%s}
+      - TEMP_ROOM_CLEANUP_DELAY=${TEMP_ROOM_CLEANUP_DELAY:-30s}
+      - DATABASE_URL=postgres://lfguser:${POSTGRES_PASSWORD}@postgres:5432/lfgbot?sslmode=disable
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ADMIN_USER_IDS=597861181239066643
+      - ADMIN_CHANNEL_IDS=1383480599464902836
+      # LOL内战配置
+      - LOL_CUSTOM_ENABLED=${LOL_CUSTOM_ENABLED:-true}
+      - LOL_CUSTOM_CHANNEL_IDS=${LOL_CUSTOM_CHANNEL_IDS}
+      - LOL_CUSTOM_CATEGORY_ID=${LOL_CUSTOM_CATEGORY_ID}
+      - LOL_CUSTOM_CLEANUP_DELAY=${LOL_CUSTOM_CLEANUP_DELAY:-30m}
+      # Riot API 配置
+      - RIOT_API_KEY=${RIOT_API_KEY}
+      - RIOT_REGION=${RIOT_REGION:-na1}
+      - RIOT_PLATFORM=${RIOT_PLATFORM:-americas}
+      # Rank 绑定系统配置
+      - RANK_LEADERBOARD_CHANNEL_ID=${RANK_LEADERBOARD_CHANNEL_ID}
+      # 职业选手追踪配置
+      - PRO_TRACK_CHANNEL_ID=${PRO_TRACK_CHANNEL_ID:-}
+      - PRO_TRACK_MENTION_ROLE_ID=${PRO_TRACK_MENTION_ROLE_ID:-}
+      - PRO_TRACK_MAX=${PRO_TRACK_MAX:-10}
+      - PRO_TRACK_INTERVAL=${PRO_TRACK_INTERVAL:-20s}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - lfg-network
+    healthcheck:
+      # scratch 镜像内没有 curl，用二进制自带的探针模式
+      test: ["CMD", "/discord-lfg-bot", "-health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: lfg-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=lfgbot
+      - POSTGRES_USER=lfguser
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5433:5432"  # 使用 5433 避免与 langfuse 冲突
+    networks:
+      - lfg-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lfguser -d lfgbot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:8-alpine
+    container_name: lfg-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6380:6379"  # 使用 6380 避免与 langfuse 冲突
+    networks:
+      - lfg-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # 每日自动备份 (兜底; 异地备份见 scripts/backup.sh)
+  db-backup:
+    image: postgres:15-alpine
+    container_name: lfg-db-backup
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      - PGPASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - ./backups:/backups
+    networks:
+      - lfg-network
+    entrypoint: >
+      sh -c 'while true; do
+        pg_dump -h postgres -U lfguser -d lfgbot | gzip > /backups/db_auto_$$(date +%Y%m%d_%H%M%S).sql.gz;
+        find /backups -name "db_auto_*.sql.gz" -mtime +30 -delete;
+        echo "auto backup done: $$(date)";
+        sleep 86400;
+      done'
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  lfg-network:
+    driver: bridge 

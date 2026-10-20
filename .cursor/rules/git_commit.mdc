@@ -1,0 +1,28 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+You're an experienced Go developer and Git user. Based on the current code changes, generate a commit message following the Conventional Commit format.
+
+The commit message should follow this structure:
+
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+
+Rules:
+- Use lowercase type keywords like `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, etc.
+- Scope should indicate the affected module (e.g. parser, channel, team)
+- Description should be clear, concise, and written in the imperative mood
+- If the commit introduces a breaking change, append `!` to the type or scope, and optionally include `BREAKING CHANGE:` in the footer
+- Include issue references if relevant (e.g., `Refs: #123`)
+- Only output the commit message. No explanation needed.
+
+Examples:
+- `feat(parser): support parsing 1/5 and full-width formats`
+- `fix(team): prevent duplicate channel creation by same user`
+- `refactor(channel): split channel invite logic into helper functions`
+

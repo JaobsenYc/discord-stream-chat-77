@@ -1,0 +1,138 @@
+---
+alwaysApply: true
+description: Project structure and architecture overview for Discord LFG Bot
+---
+
+# Discord LFG Bot - Project Structure
+
+## 🏗️ Architecture Overview
+
+This is a Go-based Discord LFG (Looking for Group) bot that helps gamers form teams and manage voice channels automatically. The project follows standard Go project layout with clean architecture principles.
+
+## 📁 Project Structure
+
+```
+discord-lfg-bot-go/
+├── cmd/                           # Application entry points
+│   ├── bot/main.go               # Main bot application
+│   ├── migrate/                  # Database migration tool
+│   └── example/                  # Example/test programs
+├── internal/                     # Private application code
+│   ├── bot/                      # Core bot logic and handlers
+│   │   ├── bot.go               # Main bot struct and initialization
+│   │   └── checkin_commands.go  # Check-in related commands
+│   ├── achievement/              # Achievement system
+│   ├── channel/                  # Discord channel management
+│   ├── config/                   # Configuration loading and validation
+│   ├── database/                 # Database operations and repository
+│   ├── lottery/                  # Lottery/raffle system
+│   ├── parser/                   # Message parsing logic
+│   ├── role/                     # Discord role management
+│   ├── team/                     # Team state management
+│   └── temproom/                 # Temporary voice room management
+├── pkg/                          # Public packages (reusable)
+│   └── logger/                   # Logging utilities
+├── config/                       # Configuration files
+│   └── consise.env.example      # Environment template (copy to .env)
+├── sql/                          # Database schemas and migrations
+├── docker/                       # Docker configurations
+├── docs/                         # Documentation
+├── scripts/                      # Build and deployment scripts
+├── logs/                         # Application logs
+├── .cursor/rules/               # Cursor AI rules (this directory)
+├── docker-compose.yml           # Development Docker setup
+├── Makefile                     # Build automation
+├── go.mod                       # Go module definition
+└── README.md                    # Project documentation
+```
+
+## 🔧 Key Components
+
+### Core Bot ([internal/bot/bot.go](mdc:internal/bot/bot.go))
+- Main `Bot` struct with all dependencies
+- Discord event handlers (message, voice state, member events)
+- Graceful startup and shutdown
+- Integration with all subsystems
+
+### Message Parser ([internal/parser/](mdc:internal/parser/))
+- Parses LFG messages in format: `游戏名 人数=当前人数`
+- Game recognition by text-channel mapping (`CHANNEL_MAPPINGS` env var), not by name aliases
+- Supports multiple formats: `5=1`, `1/5`, `（1/5）`
+
+### Channel Manager ([internal/channel/](mdc:internal/channel/))
+- Creates/manages temporary voice channels
+- Channel naming: `[游戏名] 寻组 (当前人数/总人数)`
+- Automatic cleanup after inactivity
+
+### Team Manager ([internal/team/](mdc:internal/team/))
+- Tracks team state and membership
+- Handles team formation and completion
+- Integrates with voice channel management
+
+### Database Layer ([internal/database/](mdc:internal/database/))
+- PostgreSQL for persistent data
+- Redis for caching and session data
+- Repository pattern for data access
+- Connection pooling and health checks
+
+### Configuration ([internal/config/](mdc:internal/config/) & [config/](mdc:config/))
+- Environment-based configuration (all settings via `.env`)
+- Feature flags support (temp rooms, LOL custom, dev cleanup)
+
+## 🎮 Game System
+
+Game-to-channel mappings are defined solely by the `CHANNEL_MAPPINGS` env var in `.env`:
+- Format: `游戏名:文字频道ID:语音分类ID`, comma-separated
+- The game is determined by which text channel the message was sent in
+- Fallbacks: `DEFAULT_TEXT_CHANNEL_ID` / `DEFAULT_CATEGORY_ID`
+
+## 🏛️ Architecture Patterns
+
+### Clean Architecture
+- **cmd/**: Application entry points
+- **internal/**: Business logic (private to this app)
+- **pkg/**: Reusable packages
+- Clear separation of concerns
+
+### Dependency Injection
+```go
+// Example from bot.go
+bot := &Bot{
+    session:            session,
+    config:            cfg,
+    teamManager:       team.NewManager(),
+    channelManager:    channel.NewManager(session, cfg.GuildID, cfg),
+    repository:        repo,
+}
+```
+
+### Repository Pattern
+```go
+type Repository interface {
+    GetUserByID(ctx context.Context, userID string) (*User, error)
+    CreateTeam(ctx context.Context, team *Team) error
+}
+```
+
+## 🛠️ Development Workflow
+
+### Build System ([Makefile](mdc:Makefile))
+- `make build`: Build the bot binary
+- `make test`: Run all tests
+- `make docker-build`: Build Docker image
+- `make migrate`: Run database migrations
+
+### Environment Setup
+1. Copy `config/consise.env.example` to `.env`
+2. Configure Discord token and channel IDs
+3. Set up PostgreSQL and Redis
+4. Run `make build && make run`
+
+## 🔗 Key File References
+
+- **Main Entry**: [cmd/bot/main.go](mdc:cmd/bot/main.go)
+- **Bot Core**: [internal/bot/bot.go](mdc:internal/bot/bot.go)
+- **Game/Channel Config**: `CHANNEL_MAPPINGS` in [.env](mdc:.env)
+- **Build System**: [Makefile](mdc:Makefile)
+- **Project Docs**: [PROJECT_SUMMARY.md](mdc:PROJECT_SUMMARY.md)
+- **Environment**: [.env](mdc:.env) (based on config/consise.env.example)
